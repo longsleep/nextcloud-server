@@ -28,10 +28,11 @@ use OCP\Files\IAppData;
 use OCP\Files\IRootFolder;
 use OCP\Files\Folder;
 use OC\SystemConfig;
+use OCP\Files\Node;
 use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
 
-class AppData extends SimpleRoot implements IAppData {
+class AppData implements IAppData {
 
 	/** @var IRootFolder */
 	private $rootFolder;
@@ -41,6 +42,9 @@ class AppData extends SimpleRoot implements IAppData {
 
 	/** @var string */
 	private $appId;
+
+	/** @var Folder */
+	private $folder;
 
 	/**
 	 * AppData constructor.
@@ -58,9 +62,6 @@ class AppData extends SimpleRoot implements IAppData {
 		$this->appId = $appId;
 	}
 
-	/**
-	 * @return Folder
-	 */
 	private function getAppDataFolder() {
 		if ($this->folder === null) {
 			$instanceId = $this->config->getValue('instanceid', null);
@@ -98,9 +99,6 @@ class AppData extends SimpleRoot implements IAppData {
 		return $this->folder;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public function getFolder($name) {
 		$node = $this->getAppDataFolder()->get($name);
 
@@ -108,9 +106,6 @@ class AppData extends SimpleRoot implements IAppData {
 		return new SimpleFolder($node);
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	public function newFolder($name) {
 		$folder = $this->getAppDataFolder()->newFolder($name);
 
@@ -120,10 +115,15 @@ class AppData extends SimpleRoot implements IAppData {
 	public function getDirectoryListing() {
 		$listing = $this->getAppDataFolder()->getDirectoryListing();
 
-		$fileListing = array_map(function(Node $file) {
-			return new SimpleFolder($file);
+		$fileListing = array_map(function(Node $folder) {
+			if ($folder instanceof Folder) {
+				return new SimpleFolder($folder);
+			}
+			return null;
 		}, $listing);
 
-		return $fileListing;
+		$fileListing = array_filter($fileListing);
+
+		return array_values($fileListing);
 	}
 }
